@@ -1,0 +1,13 @@
+services:
+  tarantool:
+    image: tarantool/tarantool:3.2
+    container_name: tarantool-kv
+    ports:
+      - "3301:3301"
+    environment:
+      TARANTOOL_USER_NAME: storage
+      TARANTOOL_USER_PASSWORD: secret-cluster-cookie
+    volumes:
+      - ./init_kv.lua:/opt/tarantool/init_kv.lua:ro
+    command: tarantool /opt/tarantool/init_kv.lua
+    restart: unless-stopped

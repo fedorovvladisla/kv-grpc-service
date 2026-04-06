@@ -1,21 +1,22 @@
--- Эти функции уже должны быть, если нет — добавьте
-function kv_put(key, value)
-    box.space.KV:upsert({key, value}, {{'=', 2, value}})
-    return true
-end
 
-function kv_get(key)
-    local tuple = box.space.KV:get(key)
-    return tuple and tuple[2] or nil
-end
+box.cfg{
+    listen = 3301,
+}
 
-function kv_delete(key)
-    box.space.KV:delete(key)
-    return true
-end
+-- Создаём пользователя для приложения (если не существует)
+-- Пароль и имя должны совпадать с теми, что в Java-конфигурации
+box.schema.user.create('storage', { password = 'secret-cluster-cookie' }, { if_not_exists = true })
+box.schema.user.grant('storage', 'read,write,execute', 'universe')
 
-function kv_count()
-    return box.space.KV:count()
-end
-
--- функция select_range уже есть
+-- Создаём спейс KV с нужной схемой
+local kv = box.schema.space.create('KV', { if_not_exists = true })
+kv:format({
+    { name = 'key', type = 'string' },
+    { name = 'value', type = 'varbinary', is_nullable = true }
+})
+kv:create_index('primary', {
+    type = 'tree',
+    parts = { 'key' },
+    unique = true,
+    if_not_exists = true
+})
