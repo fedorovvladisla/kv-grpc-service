@@ -1,4 +1,4 @@
 package com.example.kv;
 
-public class KVServer {
+public class Application {
 }
