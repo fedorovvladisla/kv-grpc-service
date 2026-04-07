@@ -5,6 +5,8 @@ gRPC сервис для KV хранилища на Tarantool
 - Java 17
 - Maven
 - Docker & Docker Compose
+- Tarantool 3.2.*
+- tarantool-client-1.5.0
 
 ## Быстрый старт
 
