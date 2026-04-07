@@ -1,26 +1,44 @@
 syntax = "proto3";
 
-package com.example.kv;
+package kv;
 
-service KVService {
-  rpc Put (KeyValue) returns (Empty);
-  rpc Get (Key) returns (Value);
-  rpc Delete (Key) returns (Empty);
-  rpc Range (RangeRequest) returns (stream KeyValue);
-  rpc Count (Empty) returns (CountResponse);
+option java_package = "com.example.kv";
+option java_outer_classname = "KvProto";
+
+service KvService {
+  rpc Put(PutRequest) returns (PutResponse);
+  rpc Get(GetRequest) returns (GetResponse);
+  rpc Delete(DeleteRequest) returns (DeleteResponse);
+  rpc Range(RangeRequest) returns (stream KvPair);
+  rpc Count(Empty) returns (CountResponse);
 }
 
-message KeyValue {
+message PutRequest {
   string key = 1;
   bytes value = 2;
+  bool is_null = 3;
 }
 
-message Key {
+message PutResponse {
+  bool success = 1;
+}
+
+message GetRequest {
   string key = 1;
 }
 
-message Value {
+message GetResponse {
   bytes value = 1;
+  bool found = 2;
+  bool is_null = 3;
+}
+
+message DeleteRequest {
+  string key = 1;
+}
+
+message DeleteResponse {
+  bool success = 1;
 }
 
 message RangeRequest {
@@ -28,8 +46,14 @@ message RangeRequest {
   string key_to = 2;
 }
 
-message CountResponse {
-  int64 count = 1;
+message KvPair {
+  string key = 1;
+  bytes value = 2;
+  bool is_null = 3;
 }
 
 message Empty {}
+
+message CountResponse {
+  int64 count = 1;
+}

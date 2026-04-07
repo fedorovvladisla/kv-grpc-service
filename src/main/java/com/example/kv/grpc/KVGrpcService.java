@@ -1,62 +1,108 @@
 package com.example.kv.grpc;
 
-import com.example.kv.KVServiceGrpc;
-
-import com.example.kv.KvService.*;
-import com.example.kv.service.KVStorageService;
+import com.example.kv.repository.KVRepository;
+import com.example.kv.KvProto.*;
+import com.example.kv.KvServiceGrpc;
+import com.google.protobuf.ByteString;
 import io.grpc.stub.StreamObserver;
+import lombok.RequiredArgsConstructor;
 import net.devh.boot.grpc.server.service.GrpcService;
 
+import java.util.List;
+
 @GrpcService
-public class KVGrpcService extends KVServiceGrpc.KVServiceImplBase {
+@RequiredArgsConstructor
+public class KVGrpcService extends KvServiceGrpc.KvServiceImplBase {
 
-    private final KVStorageService storage;
-
-    public KVGrpcService(KVStorageService storage) {
-        this.storage = storage;
-    }
+    private final KVRepository kvRepository;
 
     @Override
-    public void put(KeyValue request, StreamObserver<Empty> responseObserver) {
-        byte[] value = request.getValue().toByteArray();
-        storage.put(request.getKey(), value.length == 0 ? null : value);
-        responseObserver.onNext(Empty.newBuilder().build());
+    public void put(PutRequest request, StreamObserver<PutResponse> responseObserver) {
+        try {
+            byte[] value = request.getValue().toByteArray();
+            boolean isNull = request.getIsNull();
+            kvRepository.put(request.getKey(), value, isNull);
+            responseObserver.onNext(PutResponse.newBuilder().setSuccess(true).build());
+        } catch (Exception e) {
+            e.printStackTrace();
+            responseObserver.onNext(PutResponse.newBuilder().setSuccess(false).build());
+        }
         responseObserver.onCompleted();
     }
 
     @Override
-    public void get(Key request, StreamObserver<Value> responseObserver) {
-        byte[] value = storage.get(request.getKey());
-        Value response = Value.newBuilder()
-                .setValue(value != null ? com.google.protobuf.ByteString.copyFrom(value) : com.google.protobuf.ByteString.EMPTY)
-                .build();
-        responseObserver.onNext(response);
+    public void get(GetRequest request, StreamObserver<GetResponse> responseObserver) {
+        try {
+            List<?> result = kvRepository.get(request.getKey());
+            if (result != null && !result.isEmpty()) {
+                Object raw = result.get(0);
+                if (raw instanceof List) {
+                    List<?> tuple = (List<?>) raw;
+                    Object valueObj = tuple.size() > 1 ? tuple.get(1) : null;
+                    boolean isNull = (valueObj == null);
+                    GetResponse.Builder builder = GetResponse.newBuilder()
+                            .setFound(true)
+                            .setIsNull(isNull);
+                    if (!isNull && valueObj instanceof byte[]) {
+                        builder.setValue(ByteString.copyFrom((byte[]) valueObj));
+                    }
+                    responseObserver.onNext(builder.build());
+                } else {
+                    responseObserver.onNext(GetResponse.newBuilder().setFound(false).build());
+                }
+            } else {
+                responseObserver.onNext(GetResponse.newBuilder().setFound(false).build());
+            }
+        } catch (Exception e) {
+            responseObserver.onNext(GetResponse.newBuilder().setFound(false).build());
+        }
         responseObserver.onCompleted();
     }
 
     @Override
-    public void delete(Key request, StreamObserver<Empty> responseObserver) {
-        storage.delete(request.getKey());
-        responseObserver.onNext(Empty.newBuilder().build());
+    public void delete(DeleteRequest request, StreamObserver<DeleteResponse> responseObserver) {
+        try {
+            kvRepository.delete(request.getKey());
+            responseObserver.onNext(DeleteResponse.newBuilder().setSuccess(true).build());
+        } catch (Exception e) {
+            responseObserver.onNext(DeleteResponse.newBuilder().setSuccess(false).build());
+        }
         responseObserver.onCompleted();
     }
 
     @Override
-    public void range(RangeRequest request, StreamObserver<KeyValue> responseObserver) {
-        storage.rangeStream(request.getKeySince(), request.getKeyTo(), entry -> {
-            KeyValue kv = KeyValue.newBuilder()
-                    .setKey(entry.getKey())
-                    .setValue(entry.getValue() != null ? com.google.protobuf.ByteString.copyFrom(entry.getValue()) : com.google.protobuf.ByteString.EMPTY)
-                    .build();
-            responseObserver.onNext(kv);
-        });
+    public void range(RangeRequest request, StreamObserver<KvPair> responseObserver) {
+        try {
+            String since = request.getKeySince();
+            String to = request.getKeyTo();
+            List<List<Object>> tuples = kvRepository.range(since, to);
+            for (List<Object> tuple : tuples) {
+                if (tuple.size() >= 1) {
+                    String key = (String) tuple.get(0);
+                    Object valueObj = tuple.size() > 1 ? tuple.get(1) : null;
+                    boolean isNull = (valueObj == null);
+                    KvPair.Builder builder = KvPair.newBuilder()
+                            .setKey(key)
+                            .setIsNull(isNull);
+                    if (!isNull && valueObj instanceof byte[]) {
+                        builder.setValue(ByteString.copyFrom((byte[]) valueObj));
+                    }
+                    responseObserver.onNext(builder.build());
+                }
+            }
+        } catch (Exception e) {
+        }
         responseObserver.onCompleted();
     }
 
     @Override
     public void count(Empty request, StreamObserver<CountResponse> responseObserver) {
-        long total = storage.count();
-        responseObserver.onNext(CountResponse.newBuilder().setCount(total).build());
+        try {
+            long count = kvRepository.count();
+            responseObserver.onNext(CountResponse.newBuilder().setCount(count).build());
+        } catch (Exception e) {
+            responseObserver.onNext(CountResponse.newBuilder().setCount(0).build());
+        }
         responseObserver.onCompleted();
     }
 }
