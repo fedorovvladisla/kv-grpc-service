@@ -21,7 +21,6 @@ docker logs tarantool-kv
 2. Сборка Java-приложения
    Убедитесь, что в pom.xml указаны зависимости:
 - io.tarantool:tarantool-client:1.5.0
-- net.devh:grpc-spring-boot-starter:2.15.0.RELEASE
   
 Соберите JAR:
 ```bash
