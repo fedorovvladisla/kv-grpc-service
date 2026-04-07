@@ -37,22 +37,22 @@ java -jar target/kv-service-0.0.1-SNAPSHOT.jar
 
 - Put (сохранить запись)
 ```bash
-grpcurl -plaintext -d '{"key":"user1","value":"SGVsbG8="}' localhost:9090 com.example.kv.KVService/Put 
+grpcurl -plaintext -d "{\"key\":\"test\",\"value\":\"dGVzdA==\",\"is_null\":false}" localhost:9090 kv.KvService/Put
 ```
 - Get (получить)
 ```bash
-grpcurl -plaintext -d '{"key":"user1"}' localhost:9090 com.example.kv.KVService/Get
+grpcurl -plaintext -d "{\"key\":\"test\"}" localhost:9090 kv.KvService/Get
 ```
 - Count
 ```bash
-grpcurl -plaintext -d '{}' localhost:9090 com.example.kv.KVService/Count
+grpcurl -plaintext -d "{}" localhost:9090 kv.KvService/Count
 ```
 - Range
 ```bash
-grpcurl -plaintext -d '{"key_since":"a","key_to":"z"}' localhost:9090 com.example.kv.KVService/Range
+grpcurl -plaintext -d "{\"key_since\":\"a\",\"key_to\":\"z\"}" localhost:9090 kv.KvService/Range
 ```
 - Delete
 ```bash
-grpcurl -plaintext -d '{"key":"user1"}' localhost:9090 com.example.kv.KVService/Delete
+grpcurl -plaintext -d "{\"key\":\"test\"}" localhost:9090 kv.KvService/Delete
 ```
  
